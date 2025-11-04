@@ -4,7 +4,6 @@ from src.auth.models import UserRequest
 from uuid import UUID
 
 app = Flask(__name__)
-
 todo_services = TodoService()
 
 
@@ -30,15 +29,11 @@ def login_process():
         else:
             return redirect(url_for("login"))
 
-@app.route("/resigter") #redirect to login after successfully registering
+@app.route("/register") #redirect to login after successfully registering
 def register():
-    return render_template("login.html")
-
-@app.route("/resigter_process", methods=['POST'])  #redirect to regiter when the credintials aren't correct
-def register_proces():
     return render_template("register.html")
 
-@app.route("/register", methods=["POST"])
+@app.route("/register_process", methods=["POST"])
 def register_process():
     if request.method == "POST":
         name = request.form["name"]
@@ -52,51 +47,52 @@ def register_process():
             return redirect(url_for("register"))
 
 @app.route("/todo_get") 
-def todo_get(user_id):
-    user_id = UUID(user_id)
+def todo_get():
+    user_id = UUID(request.args.get("user_id"))
     todos = todo_services.get_todo(user_id)
 
-    return render_template("todo.html", todos=todos)
+    return render_template("todo.html", todos=todos, user_id=user_id)
 
 
 @app.route("/todo")
-def todo(data):
-    return render_template("todo.html", data=data)
+def todo():
+    return render_template("todo.html")
 
 
 @app.route("/todo_update", methods=["POST"])
 def todo_update():
-    todo_id = request.form["todo_id"]
-    title = request.form["title"]
-    description = request.form["description"]
+    todo_id = UUID(request.form["todo_id"])
+    status = request.form["status"]
+    user_id = request.form["user_id"]
     # add update todo function from services
-    
-    return redirect(url_for("todo_get", user_id=request.form["user_id"]))
+    todo_services.update_todo(todo_id, status)
+    todos = todo_services.get_todo(user_id)
+    return render_template("todo.html", todos=todos, user_id=user_id)
 
 @app.route("/sub_todo_get") #get sub_todo
-def sub_todo_get(todo_id):
-    todo_id = UUID(todo_id)
+def sub_todo_get():
+    todo_id = UUID(request.args.get("todo_id"))
     subtodos = todo_services.get_sub_todo(todo_id)
-    return render_template("sub_todo.html", subtodos=subtodos)
+    return render_template("sub_todo.html", subtodos=subtodos, todo_id=todo_id)
 
 
 
 @app.route("/sub_todo", methods=["POST"])
 def sub_todo():
-    todo_id = request.form.get("todo_id")
-    title = request.form.get("title")
-    
-    return redirect(url_for("update_todo", todo_id=todo_id))
+    todo_id = request.form["todo_id"]
+    title = request.form["title"]
+    todo_services.create_sub_todo(todo_id, title)
+    return redirect(url_for("update_todo_get", todo_id=todo_id))
 
-
-@app.route("/sub_todo_update") #updating todo
-def sub_todo_update():
-    return redirect(url_for("sub_todo"))
 
 @app.route("/sub_todo_update", methods=["POST"])
 def sub_todo_update():
-    todo_id = request.form.get("todo_id")
-    return redirect(url_for("update_sub_todo", todo_id=todo_id))
+    sub_todo_id = UUID(request.form["sub_todo_id"])
+    status = request.form["status"]
+    todo_id = request.form["todo_id"]
+    todo_services.update_sub_todo(sub_todo_id, status)
+    subtodos = todo_services.get_sub_todo(todo_id)
+    return render_template("sub_todo.html", subtodos=subtodos, todo_id=todo_id)
 
 
 
